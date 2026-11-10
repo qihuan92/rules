@@ -48,6 +48,7 @@ Mihomo 先匹配先生效。文件后半里和前面完全重复、不可能再�
 - `suanshubang.com`
 - `suanshubang.cc`
 - `yukework.com`
+- `penpot.app`（这个域名以及它的子域名，例如 `design.penpot.app`）
 - `downloads.cursor.com`（只这一台主机。`cursor.com` 的其他主机仍走 `US-Balancer`）
 
 面板里 `Streaming` 排在 `Download` 下面。OpenAI、Steam、Download 用 [Koolson/Qure](https://github.com/Koolson/Qure/tree/master/IconSet/Color) 里对应的图标，Claude 用 Oasisic 的 Anthropic 图标，SpaceX 用官网那张黑底白 X 的 PNG。其余图标仍来自 Qure。端口、DNS 和测速间隔仍按 glados：Auto 180 秒，Streaming 与负载均衡 300 秒，固定 IP 回退 120 秒。

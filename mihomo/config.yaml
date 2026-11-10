@@ -91,6 +91,7 @@ rules:
   - DOMAIN-SUFFIX,suanshubang.cc,DIRECT
   - DOMAIN-SUFFIX,suanshubang.com,DIRECT
   - DOMAIN-SUFFIX,yukework.com,DIRECT
+  - DOMAIN-SUFFIX,penpot.app,DIRECT
   - DOMAIN,downloads.cursor.com,DIRECT
   # 端口
   - DST-PORT,8080,DIRECT
