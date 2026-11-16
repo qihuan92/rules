@@ -41,17 +41,18 @@ x-url-test-streaming: &url-test-streaming {type: url-test, url: "http://www.gsta
 x-load-balance: &load-balance {type: load-balance, url: "http://www.gstatic.com/generate_204", interval: 300, strategy: consistent-hashing, empty-fallback: REJECT}
 x-fallback: &fallback {type: fallback, url: "http://www.gstatic.com/generate_204", interval: 120, empty-fallback: REJECT}
 
-# 节点名正则。末尾数字增减都算同一类；X / B 后面的批次号也按数字匹配。
+# 节点名正则。末尾数字增减都算同一类。旧的 X 名字和新的 Balancer、Download 名字都能进组。
 x-filter-us-fixed: &filter-us-fixed '^US-Fixed-\d+$'
 x-filter-tw-fixed: &filter-tw-fixed '^TW-Fixed-\d+$'
 x-filter-jp-fixed: &filter-jp-fixed '^JP-Fixed-\d+$'
-x-filter-us-x: &filter-us-x '^US-X\d+-\d+$'
-x-filter-tw-x: &filter-tw-x '^TW-X\d+-\d+$'
-x-filter-jp-x: &filter-jp-x '^JP-X\d+-\d+$'
+x-filter-us-balancer: &filter-us-balancer '^(US-X\d+-\d+|US-Balancer-\d+)$'
+x-filter-tw-balancer: &filter-tw-balancer '^(TW-X\d+-\d+|TW-Balancer-\d+)$'
+x-filter-jp-balancer: &filter-jp-balancer '^(JP-X\d+-\d+|JP-Balancer-\d+)$'
+x-filter-download: &filter-download '^(US-X\d+-\d+|Download-\d+)$'
 x-filter-fixed: &filter-fixed '^(US|TW|JP)-Fixed-\d+$'
 x-filter-fast-and-fixed: &filter-fast-and-fixed '^(Fast-B\d+-\d+|(US|TW|JP)-Fixed-\d+)$'
-x-filter-streaming: &filter-streaming '^(Balancer-B\d+-\d+|US-X\d+-\d+|TW-X\d+-\d+)$'
-x-filter-manual-nodes: &filter-manual-nodes '^((US|TW|JP)-Fixed-\d+|(US|TW|JP)-X\d+-\d+)$'
+x-filter-streaming: &filter-streaming '^(Balancer-B\d+-\d+|US-X\d+-\d+|TW-X\d+-\d+|(US|TW)-Balancer-\d+)$'
+x-filter-manual-nodes: &filter-manual-nodes '^((US|TW|JP)-Fixed-\d+|(US|TW|JP)-X\d+-\d+|(US|TW|JP)-Balancer-\d+)$'
 
 # 节点来自本文件的 proxies，或取消下面这段注释并填入订阅。
 # include-all 只能看到这两处，看不到别的配置文件里的节点。
@@ -75,11 +76,12 @@ proxy-groups:
   - {name: SpaceX, type: select, proxies: ["Default Proxy", "US Fixed IP", "TW Fixed IP", "JP Fixed IP", US-Balancer, TW-Balancer, JP-Balancer, Auto], include-all: true, filter: *filter-fixed, icon: "https://www.google.com/s2/favicons?domain=spacex.com&sz=128"}
   - {name: Microsoft, type: select, proxies: ["Default Proxy", "US Fixed IP", "TW Fixed IP", "JP Fixed IP", US-Balancer, TW-Balancer, JP-Balancer, Auto, DIRECT], include-all: true, filter: *filter-fixed, icon: "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Microsoft.png"}
   - {name: Steam, type: select, proxies: [Download, DIRECT, "Default Proxy", US-Balancer, TW-Balancer, JP-Balancer], icon: "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Steam.png"}
-  - {name: Download, <<: *load-balance, include-all: true, filter: *filter-us-x, icon: "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Download.png"}
+  - {name: WebRTC, type: select, proxies: [REJECT, "US Fixed IP", "TW Fixed IP", "JP Fixed IP", DIRECT], include-all: true, filter: *filter-fixed, icon: "https://www.google.com/s2/favicons?domain=webrtc.org&sz=128"}
+  - {name: Download, <<: *load-balance, include-all: true, filter: *filter-download, icon: "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Download.png"}
   - {name: Streaming, <<: *url-test-streaming, include-all: true, filter: *filter-streaming, icon: "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Streaming.png"}
-  - {name: US-Balancer, <<: *load-balance, include-all: true, filter: *filter-us-x, icon: "https://github.com/Koolson/Qure/raw/master/IconSet/Color/United_States.png"}
-  - {name: TW-Balancer, <<: *load-balance, include-all: true, filter: *filter-tw-x, icon: "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Taiwan.png"}
-  - {name: JP-Balancer, <<: *load-balance, include-all: true, filter: *filter-jp-x, icon: "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Japan.png"}
+  - {name: US-Balancer, <<: *load-balance, include-all: true, filter: *filter-us-balancer, icon: "https://github.com/Koolson/Qure/raw/master/IconSet/Color/United_States.png"}
+  - {name: TW-Balancer, <<: *load-balance, include-all: true, filter: *filter-tw-balancer, icon: "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Taiwan.png"}
+  - {name: JP-Balancer, <<: *load-balance, include-all: true, filter: *filter-jp-balancer, icon: "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Japan.png"}
   - {name: "US Fixed IP", <<: *fallback, include-all: true, filter: *filter-us-fixed, icon: "https://github.com/Koolson/Qure/raw/master/IconSet/Color/United_States.png"}
   - {name: "TW Fixed IP", <<: *fallback, include-all: true, filter: *filter-tw-fixed, icon: "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Taiwan.png"}
   - {name: "JP Fixed IP", <<: *fallback, include-all: true, filter: *filter-jp-fixed, icon: "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Japan.png"}
@@ -92,9 +94,15 @@ rules:
   - DOMAIN-SUFFIX,suanshubang.com,DIRECT
   - DOMAIN-SUFFIX,yukework.com,DIRECT
   - DOMAIN,downloads.cursor.com,DIRECT
+  # WebRTC
+  - AND,((NETWORK,UDP),(DST-PORT,3478-3479/5349-5350/19302-19309)),WebRTC
+  # 局域网
+  - IP-CIDR,10.0.0.0/8,DIRECT
+  - IP-CIDR,172.16.0.0/12,DIRECT
+  - IP-CIDR,192.168.0.0/16,DIRECT
   # 端口
   - DST-PORT,8080,DIRECT
-  # 局域网与保留域名
+  # 保留域名
   - DOMAIN-SUFFIX,localhost,DIRECT
   - DOMAIN-SUFFIX,localhost.localdomain,DIRECT
   - DOMAIN-SUFFIX,local,DIRECT
@@ -189,6 +197,9 @@ rules:
   - DOMAIN-SUFFIX,msftncsi.com,DIRECT
   # 开发资源
   - DOMAIN-SUFFIX,gallerycdn.vsassets.io,Download
+  - DOMAIN-SUFFIX,objects.githubusercontent.com,Download
+  - DOMAIN-SUFFIX,release-assets.githubusercontent.com,Download
+  - DOMAIN-SUFFIX,openaipublic.blob.core.windows.net,Download
   # Microsoft
   - DOMAIN-SUFFIX,microsoft.com,Microsoft
   - DOMAIN-SUFFIX,microsoftonline.com,Microsoft
@@ -235,17 +246,8 @@ rules:
   - DOMAIN-SUFFIX,minecraftservices.com,Microsoft
   - DOMAIN-SUFFIX,minecraft-services.net,Microsoft
   - DOMAIN-SUFFIX,mojang.com,Microsoft
-  - DOMAIN-SUFFIX,github.com,Microsoft
-  - DOMAIN-SUFFIX,github.io,Microsoft
-  - DOMAIN-SUFFIX,githubusercontent.com,Microsoft
-  - DOMAIN-SUFFIX,githubassets.com,Microsoft
-  - DOMAIN-SUFFIX,ghcr.io,Microsoft
-  - DOMAIN-SUFFIX,github.dev,Microsoft
-  - DOMAIN-SUFFIX,ghe.com,Microsoft
-  - DOMAIN-SUFFIX,githubsupport.com,Microsoft
   - DOMAIN-KEYWORD,microsoft,Microsoft
   - DOMAIN-KEYWORD,msft,Microsoft
-  - DOMAIN-KEYWORD,github,Microsoft
   # Apple
   - DOMAIN-SUFFIX,apple.com,DIRECT
   - DOMAIN-SUFFIX,apple.com.cn,DIRECT
@@ -288,6 +290,26 @@ rules:
   - DOMAIN-SUFFIX,twimg.com,SpaceX
   - DOMAIN-SUFFIX,t.co,SpaceX
   - DOMAIN-SUFFIX,twittercdn.com,SpaceX
+  - DOMAIN-SUFFIX,ads-twitter.com,SpaceX
+  - DOMAIN-SUFFIX,tellapart.com,SpaceX
+  - DOMAIN-SUFFIX,twitteroauth.com,SpaceX
+  - DOMAIN-SUFFIX,twtrdns.net,SpaceX
+  - DOMAIN-SUFFIX,twitter.biz,SpaceX
+  - DOMAIN-SUFFIX,twitter.jp,SpaceX
+  - DOMAIN-SUFFIX,twittercommunity.com,SpaceX
+  - DOMAIN-SUFFIX,twitterflightschool.com,SpaceX
+  - DOMAIN-SUFFIX,twitterinc.com,SpaceX
+  - DOMAIN-SUFFIX,twitterstat.us,SpaceX
+  - DOMAIN-SUFFIX,cms-twdigitalassets.com,SpaceX
+  - DOMAIN-SUFFIX,twttr.com,SpaceX
+  - DOMAIN-SUFFIX,twttr.net,SpaceX
+  - DOMAIN-SUFFIX,twvid.com,SpaceX
+  - DOMAIN-SUFFIX,twitter.map.fastly.net,SpaceX
+  - DOMAIN-SUFFIX,tweetdeck.com,SpaceX
+  - DOMAIN-SUFFIX,twitpic.com,SpaceX
+  - DOMAIN-SUFFIX,periscope.tv,SpaceX
+  - DOMAIN-SUFFIX,pscp.tv,SpaceX
+  - DOMAIN-SUFFIX,vine.co,SpaceX
   - DOMAIN-SUFFIX,x.ai,SpaceX
   - DOMAIN-SUFFIX,grok.com,SpaceX
   - DOMAIN-SUFFIX,grokipedia.com,SpaceX
@@ -301,6 +323,12 @@ rules:
   - DOMAIN-SUFFIX,solarcity.com,SpaceX
   - DOMAIN-SUFFIX,ts.la,SpaceX
   - DOMAIN-KEYWORD,twitter,SpaceX
+  # Cursor
+  - DOMAIN-SUFFIX,cursor.com,SpaceX
+  - DOMAIN-SUFFIX,cursor.sh,SpaceX
+  - DOMAIN-SUFFIX,cursorapi.com,SpaceX
+  - DOMAIN-SUFFIX,cursor-cdn.com,SpaceX
+  - DOMAIN-KEYWORD,cursor,SpaceX
   # 社交
   - DOMAIN-SUFFIX,facebook.com,Default Proxy
   - DOMAIN-SUFFIX,fbcdn.net,Default Proxy
@@ -425,8 +453,13 @@ rules:
   - DOMAIN-SUFFIX,storage.googleapis.com,Download
   - DOMAIN-SUFFIX,modelzoo.co,Download
   - DOMAIN-SUFFIX,download.pytorch.org,Download
+  - DOMAIN-SUFFIX,download-r2.pytorch.org,Download
   - DOMAIN-SUFFIX,download.tensorflow.org,Download
+  - DOMAIN-SUFFIX,dl.fbaipublicfiles.com,Download
+  - DOMAIN-SUFFIX,download.nvidia.com,Download
+  - DOMAIN-SUFFIX,pypi.nvidia.com,Download
   - DOMAIN-SUFFIX,ngc.nvidia.com,Download
+  - DOMAIN-SUFFIX,nvcr.io,Download
   - DOMAIN-SUFFIX,ollama.ai,Download
   - DOMAIN-SUFFIX,ollama.com,Download
   - DOMAIN-SUFFIX,lmstudio.ai,Download
@@ -498,12 +531,13 @@ rules:
   - DOMAIN-KEYWORD,generativelanguage,Google
   - DOMAIN-SUFFIX,deepmind.com,Google
   - DOMAIN-SUFFIX,deepmind.google,Google
+  # 模型下载
+  - DOMAIN-SUFFIX,oaistatic.com,Download
   # OpenAI
   - DOMAIN-SUFFIX,chat.com,OpenAI
   - DOMAIN-SUFFIX,chatgpt.com,OpenAI
   - DOMAIN-SUFFIX,chatgpt.site,OpenAI
   - DOMAIN-SUFFIX,crixet.com,OpenAI
-  - DOMAIN-SUFFIX,oaistatic.com,OpenAI
   - DOMAIN-SUFFIX,oaistatsig.com,OpenAI
   - DOMAIN-SUFFIX,oaiusercontent.com,OpenAI
   - DOMAIN-SUFFIX,openai.com,OpenAI
@@ -526,10 +560,6 @@ rules:
   - DOMAIN-SUFFIX,cohere.ai,US-Balancer
   - DOMAIN-SUFFIX,cohere.com,US-Balancer
   - DOMAIN-SUFFIX,groq.com,US-Balancer
-  - DOMAIN-SUFFIX,cursor.com,US-Balancer
-  - DOMAIN-SUFFIX,cursor.sh,US-Balancer
-  - DOMAIN-SUFFIX,cursorapi.com,US-Balancer
-  - DOMAIN-SUFFIX,cursor-cdn.com,US-Balancer
   - DOMAIN-SUFFIX,together.ai,US-Balancer
   - DOMAIN-SUFFIX,stability.ai,US-Balancer
   - DOMAIN-SUFFIX,midjourney.com,US-Balancer
@@ -537,7 +567,6 @@ rules:
   - DOMAIN-SUFFIX,character.ai,US-Balancer
   - DOMAIN-SUFFIX,inflection.ai,US-Balancer
   - DOMAIN-SUFFIX,pi.ai,US-Balancer
-  - DOMAIN-KEYWORD,cursor,US-Balancer
   # YouTube 与流媒体
   - DOMAIN-SUFFIX,youtube.com,Streaming
   - DOMAIN-SUFFIX,ytimg.com,Streaming
@@ -546,6 +575,7 @@ rules:
   - DOMAIN-SUFFIX,youtube-nocookie.com,Streaming
   - DOMAIN-SUFFIX,yt.be,Streaming
   - DOMAIN-KEYWORD,youtube,Streaming
+  # Google
   - DOMAIN-SUFFIX,google.com,Google
   - DOMAIN-SUFFIX,google.com.hk,Google
   - DOMAIN-SUFFIX,google.co.jp,Google
@@ -560,6 +590,7 @@ rules:
   - DOMAIN-SUFFIX,android.com,Google
   - DOMAIN-SUFFIX,googleplay.com,Google
   - DOMAIN-SUFFIX,xn--ngstr-lra8j.com,Google
+  # 学术
   - DOMAIN-SUFFIX,arxiv.org,Google
   - DOMAIN-SUFFIX,biorxiv.org,Google
   - DOMAIN-SUFFIX,medrxiv.org,Google
@@ -660,8 +691,8 @@ rules:
   - DOMAIN-SUFFIX,hypothes.is,Google
   - DOMAIN-SUFFIX,gmail.com,Google
   - DOMAIN-SUFFIX,googlemail.com,Google
-  # Google
   - DOMAIN-KEYWORD,google,Google
+  # 流媒体
   - DOMAIN-SUFFIX,netflix.com.edgesuite.net,Streaming
   - DOMAIN-SUFFIX,us-west-2.amazonaws.com,Streaming
   - DOMAIN-SUFFIX,netflix.com,Streaming
@@ -809,6 +840,14 @@ rules:
   - DOMAIN-KEYWORD,hentai,Streaming
   - DOMAIN-KEYWORD,adult,Streaming
   # 开发服务
+  - DOMAIN-SUFFIX,github.com,Default Proxy
+  - DOMAIN-SUFFIX,github.io,Default Proxy
+  - DOMAIN-SUFFIX,githubusercontent.com,Default Proxy
+  - DOMAIN-SUFFIX,githubassets.com,Default Proxy
+  - DOMAIN-SUFFIX,ghcr.io,Default Proxy
+  - DOMAIN-SUFFIX,github.dev,Default Proxy
+  - DOMAIN-SUFFIX,ghe.com,Default Proxy
+  - DOMAIN-SUFFIX,githubsupport.com,Default Proxy
   - DOMAIN-SUFFIX,gitlab.com,Default Proxy
   - DOMAIN-SUFFIX,gitlab.io,Default Proxy
   - DOMAIN-SUFFIX,npmjs.com,Default Proxy
@@ -861,6 +900,7 @@ rules:
   - DOMAIN-SUFFIX,airtable.com,Default Proxy
   - DOMAIN-SUFFIX,clickup.com,Default Proxy
   - DOMAIN-SUFFIX,monday.com,Default Proxy
+  - DOMAIN-KEYWORD,github,Default Proxy
   # 软件更新
   - DOMAIN-SUFFIX,ccmdl.adobe.com,Streaming
   - DOMAIN-SUFFIX,ccmdls.adobe.com,Streaming
@@ -934,9 +974,6 @@ rules:
   - DOMAIN-SUFFIX,download.dlsite.com,Download
   - DOMAIN-SUFFIX,play.dl.dlsite.com,Download
   - DOMAIN-SUFFIX,r2.cloudflarestorage.com,Download
-  - DOMAIN-SUFFIX,download-r2.pytorch.org,Download
-  - DOMAIN-SUFFIX,pypi.nvidia.com,Download
-  - DOMAIN-SUFFIX,download.nvidia.com,Download
   - DOMAIN-SUFFIX,downloads.isaacsim.nvidia.com,Download
   - DOMAIN-SUFFIX,download-cdn.jetbrains.com,Download
   - DOMAIN-SUFFIX,downloads.marketplace.jetbrains.com,Download
@@ -948,7 +985,6 @@ rules:
   - DOMAIN-SUFFIX,assetstorev1-prd-cdn.unity3d.com,Download
   - DOMAIN-SUFFIX,repo.anaconda.com,Download
   - DOMAIN-SUFFIX,conda.anaconda.org,Download
-  - DOMAIN-SUFFIX,dl.fbaipublicfiles.com,Download
   - DOMAIN-SUFFIX,desktop-assets.comfy.org,Download
   - DOMAIN-SUFFIX,cache.nixos.org,Download
   - DOMAIN-SUFFIX,channels.nixos.org,Download
