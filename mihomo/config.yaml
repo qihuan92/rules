@@ -1,57 +1,133 @@
 # Mihomo 配置
-# 域名规则对齐 glados，先匹配先生效。策略组写法参考 YYDS：图标、锚点、按节点名过滤。
+# 域名规则对齐 glados（2026-11-16），先匹配先生效。策略组写法参考 YYDS：图标、锚点、按节点名过滤。
 # 不包含节点密钥。把节点写进 proxies，或取消 proxy-providers 的注释并填入订阅。
 
 port: 7890
 socks-port: 7891
 allow-lan: false
 mode: rule
+
+# 统一延迟计算，不同协议的节点可以放在一起比
+unified-delay: true
+
+# 节点域名并发连接所有解析结果
+tcp-concurrent: true
+
+profile:
+  store-selected: true
+  store-fake-ip: true
+
 log-level: info
 external-controller: 127.0.0.1:9090
 secret: ""
 
+geo-auto-update: true
+geo-update-interval: 24
+
+# TUN 接住不走系统代理的流量，仍然按下面的规则匹配。局域网地址不进 TUN。
+tun:
+  enable: true
+  stack: mixed
+  auto-route: true
+  auto-detect-interface: true
+  route-exclude-address:
+    - 10.0.0.0/8
+    - 172.16.0.0/12
+    - 192.168.0.0/16
+  dns-hijack:
+    - any:53
+    - tcp://any:53
+
 dns:
   enable: true
-  ipv6: true
+  listen: 127.0.0.1:23453
+  ipv6: false
+  prefer-h3: false
+  cache-algorithm: arc
+  use-hosts: true
+  use-system-hosts: true
   enhanced-mode: fake-ip
   fake-ip-range: 198.18.0.1/16
-  listen: 0.0.0.0:23453
-  default-nameserver:
-    - 119.29.29.29
-    - 114.114.114.114
-    - 223.5.5.5
-  nameserver:
-    - 119.29.29.29
-    - 114.114.114.114
-    - 223.5.5.5
-    - https://223.5.5.5/dns-query
-    - https://dns.alidns.com/dns-query
-    - https://doh.pub/dns-query
+  fake-ip-filter-mode: blacklist
   fake-ip-filter:
     - "*.lan"
     - "*.local"
+    - "*.localdomain"
+    - "*.home.arpa"
     - +.miwifi.com
     - +.docker.io
     - +.market.xiaomi.com
     - +.push.apple.com
+    - +.msftconnecttest.com
+    - +.msftncsi.com
+    - time.*.com
+    - time.*.gov
+    - ntp.*.com
+    - +.pool.ntp.org
+    - time1.cloud.tencent.com
+    - +.stun.*.*
+    - +.stun.*.*.*
+    - stun.l.google.com
+    - +.srv.nintendo.net
+    - +.stun.playstation.net
+    - xbox.*.microsoft.com
+    - +.xboxlive.com
+    - localhost.ptlogin2.qq.com
+    - localhost.sec.qq.com
+  # DNS 查询本身也走 rules。国内 IP 直连，其余走 Default Proxy。
+  respect-rules: true
+  default-nameserver:
+    - 223.5.5.5
+    - 119.29.29.29
+  proxy-server-nameserver:
+    - https://223.5.5.5/dns-query
+    - https://doh.pub/dns-query
+    - https://1.12.12.12/dns-query
+    - "tls://223.5.5.5#skip-cert-verify=true"
+    - "tls://dot.pub#skip-cert-verify=true"
+    - "tls://dns.alidns.com#skip-cert-verify=true"
+  direct-nameserver:
+    - https://223.5.5.5/dns-query
+    - https://doh.pub/dns-query
+    - "tls://223.5.5.5#skip-cert-verify=true"
+    - "tls://dot.pub#skip-cert-verify=true"
+    - "tls://dns.alidns.com#skip-cert-verify=true"
+  direct-nameserver-follow-policy: false
+  nameserver-policy:
+    "geosite:private,cn":
+      - https://223.5.5.5/dns-query
+      - https://doh.pub/dns-query
+      - "tls://223.5.5.5#skip-cert-verify=true"
+      - "tls://dot.pub#skip-cert-verify=true"
+      - "tls://dns.alidns.com#skip-cert-verify=true"
+    "+.dnsbot.net,+.gladns.com,+.gladns.net,+.glados-config.com,+.glados-config.net":
+      - https://223.5.5.5/dns-query
+      - https://doh.pub/dns-query
+      - "tls://223.5.5.5#skip-cert-verify=true"
+      - "tls://dot.pub#skip-cert-verify=true"
+      - "tls://dns.alidns.com#skip-cert-verify=true"
+  nameserver:
+    - https://1.1.1.1/dns-query
+    - https://8.8.8.8/dns-query
 
-# 锚点。测速间隔与 glados 一致，不改成 YYDS 的默认值。
-x-url-test-auto: &url-test-auto {type: url-test, url: "http://www.gstatic.com/generate_204", interval: 180, tolerance: 100, empty-fallback: REJECT}
-x-url-test-streaming: &url-test-streaming {type: url-test, url: "http://www.gstatic.com/generate_204", interval: 300, tolerance: 100, empty-fallback: REJECT}
-x-load-balance: &load-balance {type: load-balance, url: "http://www.gstatic.com/generate_204", interval: 300, strategy: consistent-hashing, empty-fallback: REJECT}
-x-fallback: &fallback {type: fallback, url: "http://www.gstatic.com/generate_204", interval: 120, empty-fallback: REJECT}
+# 测速间隔与 glados 一致。某一类节点一个都没有时，自动组落到 REJECT。
+x-url-test-auto: &url-test-auto {type: url-test, hidden: true, url: "http://www.gstatic.com/generate_204", interval: 180, tolerance: 100, empty-fallback: REJECT}
+x-load-balance: &load-balance {type: load-balance, hidden: true, url: "http://www.gstatic.com/generate_204", interval: 300, strategy: consistent-hashing, empty-fallback: REJECT}
+x-fallback: &fallback {type: fallback, url: "http://www.gstatic.com/generate_204", interval: 300, empty-fallback: REJECT}
 
-# 节点名正则。末尾数字增减都算同一类；X / B 后面的批次号也按数字匹配。
+# 节点名正则。末尾数字增减都算同一类，不把 US-Fixed-01 这类名字写死。
 x-filter-us-fixed: &filter-us-fixed '^US-Fixed-\d+$'
 x-filter-tw-fixed: &filter-tw-fixed '^TW-Fixed-\d+$'
 x-filter-jp-fixed: &filter-jp-fixed '^JP-Fixed-\d+$'
-x-filter-us-x: &filter-us-x '^US-X\d+-\d+$'
-x-filter-tw-x: &filter-tw-x '^TW-X\d+-\d+$'
-x-filter-jp-x: &filter-jp-x '^JP-X\d+-\d+$'
 x-filter-fixed: &filter-fixed '^(US|TW|JP)-Fixed-\d+$'
+x-filter-us-balancer: &filter-us-balancer '^US-Balancer-\d+$'
+x-filter-tw-balancer: &filter-tw-balancer '^TW-Balancer-\d+$'
+x-filter-jp-balancer: &filter-jp-balancer '^JP-Balancer-\d+$'
+x-filter-download: &filter-download '^Download-\d+$'
 x-filter-fast-and-fixed: &filter-fast-and-fixed '^(Fast-B\d+-\d+|(US|TW|JP)-Fixed-\d+)$'
-x-filter-streaming: &filter-streaming '^(Balancer-B\d+-\d+|US-X\d+-\d+|TW-X\d+-\d+)$'
-x-filter-manual-nodes: &filter-manual-nodes '^((US|TW|JP)-Fixed-\d+|(US|TW|JP)-X\d+-\d+)$'
+x-filter-default-nodes: &filter-default-nodes '^((US|TW|JP)-Fixed-\d+|(US|TW|JP)-Balancer-\d+)$'
+# 反引号把两个过滤分开：先收 Balancer-B，再收美/台中转节点。策略组名字排在这些节点后面。
+x-filter-streaming: &filter-streaming '^(Balancer-B\d+-\d+)$`^(US|TW)-Balancer-\d+$'
 
 # 节点来自本文件的 proxies，或取消下面这段注释并填入订阅。
 # include-all 只能看到这两处，看不到别的配置文件里的节点。
@@ -67,22 +143,24 @@ x-filter-manual-nodes: &filter-manual-nodes '^((US|TW|JP)-Fixed-\d+|(US|TW|JP)-X
 #       interval: 300
 
 proxy-groups:
-  - {name: "Default Proxy", type: select, proxies: [Auto, Streaming, US-Balancer, TW-Balancer, JP-Balancer, "US Fixed IP", "TW Fixed IP", "JP Fixed IP"], include-all: true, filter: *filter-manual-nodes, icon: "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Global.png"}
+  - {name: "Default Proxy", type: select, proxies: [Auto, DIRECT, Streaming, US-Balancer, TW-Balancer, JP-Balancer, "US Fixed IP", "TW Fixed IP", "JP Fixed IP"], include-all: true, filter: *filter-default-nodes, icon: "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Global.png"}
   - {name: Auto, <<: *url-test-auto, include-all: true, filter: *filter-fast-and-fixed, icon: "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Auto.png"}
-  - {name: Google, type: select, proxies: ["US Fixed IP", "TW Fixed IP", "JP Fixed IP", US-Balancer, TW-Balancer, JP-Balancer, Auto], include-all: true, filter: *filter-fixed, icon: "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Google_Search.png"}
-  - {name: OpenAI, type: select, proxies: ["US Fixed IP", "TW Fixed IP", "JP Fixed IP", US-Balancer, TW-Balancer, JP-Balancer, Auto], include-all: true, filter: *filter-fixed, icon: "https://github.com/Koolson/Qure/raw/master/IconSet/Color/ChatGPT.png"}
-  - {name: Claude, type: select, proxies: ["US Fixed IP", "TW Fixed IP", "JP Fixed IP", US-Balancer, TW-Balancer, JP-Balancer, Auto], include-all: true, filter: *filter-fixed, icon: "https://raw.githubusercontent.com/Hawaiine/Oasisic-Icons/main/icons/AI/Anthropic/Anthropic.png"}
-  - {name: SpaceX, type: select, proxies: ["Default Proxy", "US Fixed IP", "TW Fixed IP", "JP Fixed IP", US-Balancer, TW-Balancer, JP-Balancer, Auto], include-all: true, filter: *filter-fixed, icon: "https://www.google.com/s2/favicons?domain=spacex.com&sz=128"}
+  - {name: Google, type: select, proxies: ["US Fixed IP", "TW Fixed IP", "JP Fixed IP", US-Balancer, TW-Balancer, JP-Balancer, Auto, REJECT], include-all: true, filter: *filter-fixed, icon: "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Google_Search.png"}
+  - {name: OpenAI, type: select, proxies: ["US Fixed IP", "TW Fixed IP", "JP Fixed IP", REJECT], include-all: true, filter: *filter-fixed, icon: "https://github.com/Koolson/Qure/raw/master/IconSet/Color/ChatGPT.png"}
+  - {name: Claude, type: select, proxies: ["US Fixed IP", "TW Fixed IP", "JP Fixed IP", REJECT], include-all: true, filter: *filter-fixed, icon: "https://raw.githubusercontent.com/Hawaiine/Oasisic-Icons/main/icons/AI/Anthropic/Anthropic.png"}
+  - {name: SpaceX, type: select, proxies: ["Default Proxy", "US Fixed IP", "TW Fixed IP", "JP Fixed IP"], include-all: true, filter: *filter-fixed, icon: "https://www.google.com/s2/favicons?domain=spacex.com&sz=128"}
   - {name: Microsoft, type: select, proxies: ["Default Proxy", "US Fixed IP", "TW Fixed IP", "JP Fixed IP", US-Balancer, TW-Balancer, JP-Balancer, Auto, DIRECT], include-all: true, filter: *filter-fixed, icon: "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Microsoft.png"}
-  - {name: Steam, type: select, proxies: [Download, DIRECT, "Default Proxy", US-Balancer, TW-Balancer, JP-Balancer], icon: "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Steam.png"}
-  - {name: Download, <<: *load-balance, include-all: true, filter: *filter-us-x, icon: "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Download.png"}
-  - {name: Streaming, <<: *url-test-streaming, include-all: true, filter: *filter-streaming, icon: "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Streaming.png"}
-  - {name: US-Balancer, <<: *load-balance, include-all: true, filter: *filter-us-x, icon: "https://github.com/Koolson/Qure/raw/master/IconSet/Color/United_States.png"}
-  - {name: TW-Balancer, <<: *load-balance, include-all: true, filter: *filter-tw-x, icon: "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Taiwan.png"}
-  - {name: JP-Balancer, <<: *load-balance, include-all: true, filter: *filter-jp-x, icon: "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Japan.png"}
+  - {name: Steam, type: select, proxies: [DIRECT, Download, US-Balancer, TW-Balancer, JP-Balancer], icon: "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Steam.png"}
+  - {name: WebRTC, type: select, proxies: [REJECT, "US Fixed IP", "TW Fixed IP", "JP Fixed IP", DIRECT], include-all: true, filter: *filter-fixed, icon: "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Reject.png"}
+  - {name: Download, <<: *load-balance, include-all: true, filter: *filter-download, icon: "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Download.png"}
+  - {name: Streaming, type: select, proxies: [US-Balancer, TW-Balancer, JP-Balancer], include-all: true, filter: *filter-streaming, icon: "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Streaming.png"}
+  - {name: US-Balancer, <<: *load-balance, include-all: true, filter: *filter-us-balancer, icon: "https://github.com/Koolson/Qure/raw/master/IconSet/Color/United_States.png"}
+  - {name: TW-Balancer, <<: *load-balance, include-all: true, filter: *filter-tw-balancer, icon: "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Taiwan.png"}
+  - {name: JP-Balancer, <<: *load-balance, include-all: true, filter: *filter-jp-balancer, icon: "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Japan.png"}
   - {name: "US Fixed IP", <<: *fallback, include-all: true, filter: *filter-us-fixed, icon: "https://github.com/Koolson/Qure/raw/master/IconSet/Color/United_States.png"}
   - {name: "TW Fixed IP", <<: *fallback, include-all: true, filter: *filter-tw-fixed, icon: "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Taiwan.png"}
   - {name: "JP Fixed IP", <<: *fallback, include-all: true, filter: *filter-jp-fixed, icon: "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Japan.png"}
+  - {name: GLOBAL, type: select, default-selected: Auto, proxies: [Auto, DIRECT, "Default Proxy", Streaming, Google, OpenAI, Claude, SpaceX, Microsoft, Steam, WebRTC, Download, US-Balancer, TW-Balancer, JP-Balancer, "US Fixed IP", "TW Fixed IP", "JP Fixed IP"], include-all: true, icon: "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Final.png"}
 
 rules:
   # 个人直连
@@ -92,9 +170,15 @@ rules:
   - DOMAIN-SUFFIX,suanshubang.com,DIRECT
   - DOMAIN-SUFFIX,yukework.com,DIRECT
   - DOMAIN,downloads.cursor.com,DIRECT
+  # WebRTC
+  - AND,((NETWORK,UDP),(DST-PORT,3478-3479/5349-5350/19302-19309)),WebRTC
+  # 局域网
+  - IP-CIDR,10.0.0.0/8,DIRECT
+  - IP-CIDR,172.16.0.0/12,DIRECT
+  - IP-CIDR,192.168.0.0/16,DIRECT
   # 端口
   - DST-PORT,8080,DIRECT
-  # 局域网与保留域名
+  # 保留域名
   - DOMAIN-SUFFIX,localhost,DIRECT
   - DOMAIN-SUFFIX,localhost.localdomain,DIRECT
   - DOMAIN-SUFFIX,local,DIRECT
@@ -189,6 +273,9 @@ rules:
   - DOMAIN-SUFFIX,msftncsi.com,DIRECT
   # 开发资源
   - DOMAIN-SUFFIX,gallerycdn.vsassets.io,Download
+  - DOMAIN-SUFFIX,objects.githubusercontent.com,Download
+  - DOMAIN-SUFFIX,release-assets.githubusercontent.com,Download
+  - DOMAIN-SUFFIX,openaipublic.blob.core.windows.net,Download
   # Microsoft
   - DOMAIN-SUFFIX,microsoft.com,Microsoft
   - DOMAIN-SUFFIX,microsoftonline.com,Microsoft
@@ -288,6 +375,26 @@ rules:
   - DOMAIN-SUFFIX,twimg.com,SpaceX
   - DOMAIN-SUFFIX,t.co,SpaceX
   - DOMAIN-SUFFIX,twittercdn.com,SpaceX
+  - DOMAIN-SUFFIX,ads-twitter.com,SpaceX
+  - DOMAIN-SUFFIX,tellapart.com,SpaceX
+  - DOMAIN-SUFFIX,twitteroauth.com,SpaceX
+  - DOMAIN-SUFFIX,twtrdns.net,SpaceX
+  - DOMAIN-SUFFIX,twitter.biz,SpaceX
+  - DOMAIN-SUFFIX,twitter.jp,SpaceX
+  - DOMAIN-SUFFIX,twittercommunity.com,SpaceX
+  - DOMAIN-SUFFIX,twitterflightschool.com,SpaceX
+  - DOMAIN-SUFFIX,twitterinc.com,SpaceX
+  - DOMAIN-SUFFIX,twitterstat.us,SpaceX
+  - DOMAIN-SUFFIX,cms-twdigitalassets.com,SpaceX
+  - DOMAIN-SUFFIX,twttr.com,SpaceX
+  - DOMAIN-SUFFIX,twttr.net,SpaceX
+  - DOMAIN-SUFFIX,twvid.com,SpaceX
+  - DOMAIN-SUFFIX,twitter.map.fastly.net,SpaceX
+  - DOMAIN-SUFFIX,tweetdeck.com,SpaceX
+  - DOMAIN-SUFFIX,twitpic.com,SpaceX
+  - DOMAIN-SUFFIX,periscope.tv,SpaceX
+  - DOMAIN-SUFFIX,pscp.tv,SpaceX
+  - DOMAIN-SUFFIX,vine.co,SpaceX
   - DOMAIN-SUFFIX,x.ai,SpaceX
   - DOMAIN-SUFFIX,grok.com,SpaceX
   - DOMAIN-SUFFIX,grokipedia.com,SpaceX
@@ -301,6 +408,12 @@ rules:
   - DOMAIN-SUFFIX,solarcity.com,SpaceX
   - DOMAIN-SUFFIX,ts.la,SpaceX
   - DOMAIN-KEYWORD,twitter,SpaceX
+  # Cursor
+  - DOMAIN-SUFFIX,cursor.com,SpaceX
+  - DOMAIN-SUFFIX,cursor.sh,SpaceX
+  - DOMAIN-SUFFIX,cursorapi.com,SpaceX
+  - DOMAIN-SUFFIX,cursor-cdn.com,SpaceX
+  - DOMAIN-KEYWORD,cursor,SpaceX
   # 社交
   - DOMAIN-SUFFIX,facebook.com,Default Proxy
   - DOMAIN-SUFFIX,fbcdn.net,Default Proxy
@@ -425,8 +538,13 @@ rules:
   - DOMAIN-SUFFIX,storage.googleapis.com,Download
   - DOMAIN-SUFFIX,modelzoo.co,Download
   - DOMAIN-SUFFIX,download.pytorch.org,Download
+  - DOMAIN-SUFFIX,download-r2.pytorch.org,Download
   - DOMAIN-SUFFIX,download.tensorflow.org,Download
+  - DOMAIN-SUFFIX,dl.fbaipublicfiles.com,Download
+  - DOMAIN-SUFFIX,download.nvidia.com,Download
+  - DOMAIN-SUFFIX,pypi.nvidia.com,Download
   - DOMAIN-SUFFIX,ngc.nvidia.com,Download
+  - DOMAIN-SUFFIX,nvcr.io,Download
   - DOMAIN-SUFFIX,ollama.ai,Download
   - DOMAIN-SUFFIX,ollama.com,Download
   - DOMAIN-SUFFIX,lmstudio.ai,Download
@@ -498,12 +616,13 @@ rules:
   - DOMAIN-KEYWORD,generativelanguage,Google
   - DOMAIN-SUFFIX,deepmind.com,Google
   - DOMAIN-SUFFIX,deepmind.google,Google
+  # 模型下载
+  - DOMAIN-SUFFIX,oaistatic.com,Download
   # OpenAI
   - DOMAIN-SUFFIX,chat.com,OpenAI
   - DOMAIN-SUFFIX,chatgpt.com,OpenAI
   - DOMAIN-SUFFIX,chatgpt.site,OpenAI
   - DOMAIN-SUFFIX,crixet.com,OpenAI
-  - DOMAIN-SUFFIX,oaistatic.com,OpenAI
   - DOMAIN-SUFFIX,oaistatsig.com,OpenAI
   - DOMAIN-SUFFIX,oaiusercontent.com,OpenAI
   - DOMAIN-SUFFIX,openai.com,OpenAI
@@ -526,10 +645,6 @@ rules:
   - DOMAIN-SUFFIX,cohere.ai,US-Balancer
   - DOMAIN-SUFFIX,cohere.com,US-Balancer
   - DOMAIN-SUFFIX,groq.com,US-Balancer
-  - DOMAIN-SUFFIX,cursor.com,US-Balancer
-  - DOMAIN-SUFFIX,cursor.sh,US-Balancer
-  - DOMAIN-SUFFIX,cursorapi.com,US-Balancer
-  - DOMAIN-SUFFIX,cursor-cdn.com,US-Balancer
   - DOMAIN-SUFFIX,together.ai,US-Balancer
   - DOMAIN-SUFFIX,stability.ai,US-Balancer
   - DOMAIN-SUFFIX,midjourney.com,US-Balancer
@@ -537,7 +652,6 @@ rules:
   - DOMAIN-SUFFIX,character.ai,US-Balancer
   - DOMAIN-SUFFIX,inflection.ai,US-Balancer
   - DOMAIN-SUFFIX,pi.ai,US-Balancer
-  - DOMAIN-KEYWORD,cursor,US-Balancer
   # YouTube 与流媒体
   - DOMAIN-SUFFIX,youtube.com,Streaming
   - DOMAIN-SUFFIX,ytimg.com,Streaming
@@ -546,6 +660,7 @@ rules:
   - DOMAIN-SUFFIX,youtube-nocookie.com,Streaming
   - DOMAIN-SUFFIX,yt.be,Streaming
   - DOMAIN-KEYWORD,youtube,Streaming
+  # Google
   - DOMAIN-SUFFIX,google.com,Google
   - DOMAIN-SUFFIX,google.com.hk,Google
   - DOMAIN-SUFFIX,google.co.jp,Google
@@ -560,6 +675,7 @@ rules:
   - DOMAIN-SUFFIX,android.com,Google
   - DOMAIN-SUFFIX,googleplay.com,Google
   - DOMAIN-SUFFIX,xn--ngstr-lra8j.com,Google
+  # 学术
   - DOMAIN-SUFFIX,arxiv.org,Google
   - DOMAIN-SUFFIX,biorxiv.org,Google
   - DOMAIN-SUFFIX,medrxiv.org,Google
@@ -660,8 +776,8 @@ rules:
   - DOMAIN-SUFFIX,hypothes.is,Google
   - DOMAIN-SUFFIX,gmail.com,Google
   - DOMAIN-SUFFIX,googlemail.com,Google
-  # Google
   - DOMAIN-KEYWORD,google,Google
+  # 流媒体
   - DOMAIN-SUFFIX,netflix.com.edgesuite.net,Streaming
   - DOMAIN-SUFFIX,us-west-2.amazonaws.com,Streaming
   - DOMAIN-SUFFIX,netflix.com,Streaming
@@ -934,9 +1050,6 @@ rules:
   - DOMAIN-SUFFIX,download.dlsite.com,Download
   - DOMAIN-SUFFIX,play.dl.dlsite.com,Download
   - DOMAIN-SUFFIX,r2.cloudflarestorage.com,Download
-  - DOMAIN-SUFFIX,download-r2.pytorch.org,Download
-  - DOMAIN-SUFFIX,pypi.nvidia.com,Download
-  - DOMAIN-SUFFIX,download.nvidia.com,Download
   - DOMAIN-SUFFIX,downloads.isaacsim.nvidia.com,Download
   - DOMAIN-SUFFIX,download-cdn.jetbrains.com,Download
   - DOMAIN-SUFFIX,downloads.marketplace.jetbrains.com,Download
@@ -948,7 +1061,6 @@ rules:
   - DOMAIN-SUFFIX,assetstorev1-prd-cdn.unity3d.com,Download
   - DOMAIN-SUFFIX,repo.anaconda.com,Download
   - DOMAIN-SUFFIX,conda.anaconda.org,Download
-  - DOMAIN-SUFFIX,dl.fbaipublicfiles.com,Download
   - DOMAIN-SUFFIX,desktop-assets.comfy.org,Download
   - DOMAIN-SUFFIX,cache.nixos.org,Download
   - DOMAIN-SUFFIX,channels.nixos.org,Download
