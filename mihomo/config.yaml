@@ -76,7 +76,7 @@ proxy-groups:
   - {name: SpaceX, type: select, proxies: ["Default Proxy", "US Fixed IP", "TW Fixed IP", "JP Fixed IP", US-Balancer, TW-Balancer, JP-Balancer, Auto], include-all: true, filter: *filter-fixed, icon: "https://www.google.com/s2/favicons?domain=spacex.com&sz=128"}
   - {name: Microsoft, type: select, proxies: ["Default Proxy", "US Fixed IP", "TW Fixed IP", "JP Fixed IP", US-Balancer, TW-Balancer, JP-Balancer, Auto, DIRECT], include-all: true, filter: *filter-fixed, icon: "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Microsoft.png"}
   - {name: Steam, type: select, proxies: [Download, DIRECT, "Default Proxy", US-Balancer, TW-Balancer, JP-Balancer], icon: "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Steam.png"}
-  - {name: WebRTC, type: select, proxies: [REJECT, "US Fixed IP", "TW Fixed IP", "JP Fixed IP", DIRECT], include-all: true, filter: *filter-fixed, icon: "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Lock.png"}
+  - {name: WebRTC, type: select, proxies: [REJECT, "US Fixed IP", "TW Fixed IP", "JP Fixed IP", DIRECT], include-all: true, filter: *filter-fixed, icon: "https://www.google.com/s2/favicons?domain=webrtc.org&sz=128"}
   - {name: Download, <<: *load-balance, include-all: true, filter: *filter-download, icon: "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Download.png"}
   - {name: Streaming, <<: *url-test-streaming, include-all: true, filter: *filter-streaming, icon: "https://github.com/Koolson/Qure/raw/master/IconSet/Color/Streaming.png"}
   - {name: US-Balancer, <<: *load-balance, include-all: true, filter: *filter-us-balancer, icon: "https://github.com/Koolson/Qure/raw/master/IconSet/Color/United_States.png"}
